@@ -9,26 +9,48 @@ exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+    // Check if user already exists
+    let user = await User.findOne({ email });
+
+    // If user exists but is not verified
+    if (user && !user.isVerified) {
+
+      const otp = otpGenerator.generate(6, { digits: true, upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
+      const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
+
+      // Update existing user record
+      user.name = name;
+      user.password = await bcrypt.hash(password, 10);
+      user.otp = otp;
+      user.otpExpiresAt = otpExpiresAt;
+
+      await user.save();
+
+      sendOTPEmail(email, otp);
+
+      return res.status(200).json({ message: 'OTP sent to your email address for verification' });
     }
 
-    // Generate OTP
+    // If user exists and is already verified
+    if (user && user.isVerified) {
+      return res.status(400).json({ message: 'User is already registered and verified. Please log in.' });
+    }
+
+    // If user does not exist, create a new user
     const otp = otpGenerator.generate(6, { digits: true, upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
 
     // Send OTP to user's email
     sendOTPEmail(email, otp);
 
-    // Temporarily store OTP and expiration (don't save password until OTP verification)
+    // Create a new user document
     const newUser = new User({
       name,
       email,
       password: await bcrypt.hash(password, 10), // Hash password
       otp,
       otpExpiresAt,
-      isVerified: false, // Add a verification flag
+      isVerified: false, // Mark as not verified
     });
 
     await newUser.save();
@@ -39,6 +61,7 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 // Verify OTP for Registration
 exports.verifyOTP = async (req, res) => {
