@@ -1,35 +1,38 @@
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
 
-// Function to send OTP email
-const sendOTPEmail = async (email, otp) => {
-  try {
-    // Create a transporter with SMTP settings
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_PORT === "465", // Secure connection for port 465
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+const sendOTPEmail = (email, otp) => {
+  // Read the email template
+  const templatePath = path.join(__dirname, 'templates', 'otpTemplate.html');
+  let emailTemplate = fs.readFileSync(templatePath, 'utf-8');
 
-    // Email options
-    const mailOptions = {
-      from: `"No Reply" <${process.env.SMTP_USER}>`, // Custom "from" name
-      to: email,
-      subject: 'Your OTP Code',
-      text: `Hello,\n\nYour OTP code is: ${otp}\n\nThis code will expire in 5 minutes.\n\nThank you!`,
-    };
+  // Replace the placeholder with the OTP
+  emailTemplate = emailTemplate.replace('{{OTP}}', otp);
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    console.log('OTP email sent:', info.response);
-    return { success: true, message: 'OTP sent successfully.' };
-  } catch (error) {
-    console.error('Error sending OTP email:', error);
-    return { success: false, message: 'Failed to send OTP.', error: error.message };
-  }
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: `"11/4 Atti" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Your OTP Code',
+    html: emailTemplate, // Use the updated template
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log('Error sending OTP email:', error);
+    } else {
+      console.log('OTP email sent:', info.response);
+    }
+  });
 };
 
 module.exports = sendOTPEmail;
