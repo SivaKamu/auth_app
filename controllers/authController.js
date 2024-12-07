@@ -161,3 +161,52 @@ exports.verifyLoginOTP = async (req, res) => {
   }
 };
 
+
+exports.resendOTP = async (req, res) => {
+  const { email, type } = req.body; // `type` can be 'signup' or 'login'
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Handle based on the `type`
+    if (type === 'signup') {
+      // For signup, user must not be verified
+      if (user.isVerified) {
+        return res.status(400).json({ message: 'User is already verified. Please log in.' });
+      }
+    } else if (type === 'login') {
+      // For login, user must be verified
+      if (!user.isVerified) {
+        return res.status(400).json({ message: 'Account is not verified. Please complete registration.' });
+      }
+    } else {
+      return res.status(400).json({ message: 'Invalid resend type' });
+    }
+
+    // Generate a new OTP
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      upperCaseAlphabets: false,
+      lowerCaseAlphabets: false,
+      specialChars: false,
+    });
+    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
+
+    // Update the user's OTP and expiry
+    user.otp = otp;
+    user.otpExpiresAt = otpExpiresAt;
+    await user.save();
+
+    // Send the new OTP via email
+    sendOTPEmail(email, otp);
+
+    res.status(200).json({ message: 'A new OTP has been sent to your email address' });
+  } catch (error) {
+    console.error('Error during OTP resend:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
