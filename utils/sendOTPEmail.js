@@ -2,13 +2,14 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 
-const sendOTPEmail = (email, otp) => {
+const sendOTPEmail = (email, otp, userId) => {
   // Read the email template
   const templatePath = path.join(__dirname, 'templates', 'otpTemplate.html');
   let emailTemplate = fs.readFileSync(templatePath, 'utf-8');
 
   // Replace the placeholder with the OTP
   emailTemplate = emailTemplate.replace('{{OTP}}', otp);
+  emailTemplate = emailTemplate.replace('{{USERID}}', userId);
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
