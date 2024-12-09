@@ -112,7 +112,7 @@ exports.login = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     // Generate OTP
-    const otp = otpGenerator.generate(6, { digits: true, upperCaseAlphabets: false, specialChars: false });
+    const otp = otpGenerator.generate(6, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false });
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
 
     // Send OTP to user's email
@@ -163,27 +163,12 @@ exports.verifyLoginOTP = async (req, res) => {
 
 
 exports.resendOTP = async (req, res) => {
-  const { email, type } = req.body; // `type` can be 'signup' or 'login'
+  const { email } = req.body; // `type` can be 'signup' or 'login'
 
   try {
     // Find the user by email
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Handle based on the `type`
-    if (type === 'signup') {
-      // For signup, user must not be verified
-      if (user.isVerified) {
-        return res.status(400).json({ message: 'User is already verified. Please log in.' });
-      }
-    } else if (type === 'login') {
-      // For login, user must be verified
-      if (!user.isVerified) {
-        return res.status(400).json({ message: 'Account is not verified. Please complete registration.' });
-      }
-    } else {
-      return res.status(400).json({ message: 'Invalid resend type' });
-    }
 
     // Generate a new OTP
     const otp = otpGenerator.generate(6, {
@@ -209,4 +194,80 @@ exports.resendOTP = async (req, res) => {
   }
 };
 
+//forgot password
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist" });
+    }
+
+    // Generate OTP
+    const otp = otpGenerator.generate(6, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false });
+    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
+
+    // Update user record
+    user.otp = otp;
+    user.otpExpiresAt = otpExpiresAt;
+    await user.save();
+
+    // Send OTP via email
+    sendOTPEmail(email, otp);
+
+    res.status(200).json({ message: "OTP sent to your email address for password reset" });
+  } catch (error) {
+    console.error("Error during forgot password:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Verify OTP
+exports.verifyForgotPasswordOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.otp || user.otp !== otp || new Date() > user.otpExpiresAt) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Clear OTP after successful verification
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "OTP verified successfully. You can now reset your password" });
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Clear any OTP data
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully. You can now log in with your new password" });
+  } catch (error) {
+    console.error("Error during password reset:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
