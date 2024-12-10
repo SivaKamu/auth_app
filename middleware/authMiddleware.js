@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-
+console.log("hello")
 exports.protect = (req, res, next) => {
   let token = req.headers.authorization;
 
