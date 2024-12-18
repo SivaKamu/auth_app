@@ -7,7 +7,9 @@ const {
   resendOTP,
   forgotPassword,
   verifyForgotPasswordOTP,
-  resetPassword
+  resetPassword,
+  refreshToken,
+  logout
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -22,6 +24,10 @@ router.post('/resend-otp', resendOTP);
 router.post('/forgot-password', forgotPassword);
 // router.post('/forgot-password-otp', verifyForgotPasswordOTP);
 router.put('/reset-password', resetPassword);
+
+router.post('/refresh-token', refreshToken);
+
+router.post('/logout', logout);
 
 // Example protected route
 router.get('/profile', protect, (req, res) => {
