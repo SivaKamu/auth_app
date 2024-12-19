@@ -3,7 +3,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const otpGenerator = require('otp-generator');
 const sendOTPEmail = require('../utils/sendOTPEmail');
+const sendResetLinkEmail = require('../utils/sendResetLinkEmail');
 const generateSequentialUserId = require("../utils/helpers/generateUserId");
+
+
+// Generate a reset token
+const generateResetToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_RESET_PASSWORD_SECRET, { expiresIn: '15m' });
+};
+
 
 // Register User with OTP
 exports.register = async (req, res) => {
@@ -31,12 +39,12 @@ exports.register = async (req, res) => {
 
       sendOTPEmail(email, otp, userId);
 
-      return res.status(200).json({ message: 'OTP sent to your email address for verification only', status:200 });
+      return res.status(200).json({ message: 'OTP sent to your email address for verification only', statusCode:200 });
     }
 
     // If user exists and is already verified
     if (user && user.isVerified) {
-      return res.status(400).json({ message: 'User is already registered and verified. Please log in.' });
+      return res.status(409).json({ message: 'User is already registered and verified. Please log in.',  statusCode:409 });
     }
 
     // If user does not exist, create a new user
@@ -71,17 +79,17 @@ exports.register = async (req, res) => {
 // Login User with OTP
 exports.login = async (req, res) => {
   const { email, password } = req.body;
-console.log(req.body);
+  console.log(req.body);
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) return res.status(400).json({ message: 'Invalid credentials', statusCode:409 });
 
     if (!user.isVerified) {
-      return res.status(400).json({ message: 'Account is not verified. Please complete registration.' });
+      return res.status(400).json({ message: 'Account is not verified. Please complete registration.', statusCode:409 });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Password Wrong' });
+    if (!isMatch) return res.status(400).json({ message: 'Password Wrong', statusCode:409 });
 
     // Generate OTP
     const otp = otpGenerator.generate(6, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false });
@@ -110,14 +118,14 @@ exports.verifyOTP = async (req, res) => {
   try {
     // Validate type
     if (!["signup", "login", "forgot-password"].includes(type)) {
-      return res.status(400).json({ message: "Invalid type" });
+      return res.status(400).json({ message: "Invalid type", statusCode:409 });
     }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found", statusCode:409 });
 
     if (!user.otp || user.otp !== otp || new Date() > user.otpExpiresAt) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+      return res.status(400).json({ message: "Invalid or expired OTP", statusCode:409 });
     }
 
     // Clear OTP after successful verification
@@ -189,7 +197,7 @@ exports.resendOTP = async (req, res) => {
 };
 
 //forgot password
-exports.forgotPassword = async (req, res) => {
+exports.forgotPasswordOld = async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -217,8 +225,35 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+// Forgot Password: Send Reset Link
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist", statusCode: 409 });
+    }
+
+    // Generate a reset token
+    const resetToken = generateResetToken(user._id);
+
+    // Send email with reset link
+    const resetLink = `${process.env.FRONTEND_URL}/resetPassword/${resetToken}`;
+
+    // Send OTP via email
+    sendResetLinkEmail(email, resetLink, user.userId);
+
+    res.status(200).json({ message: "Password reset link sent to your email.", statusCode: 200 });
+  } catch (error) {
+    console.error("Error during forgot password:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // Reset Password
-exports.resetPassword = async (req, res) => {
+exports.resetPasswordOld = async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
@@ -236,6 +271,36 @@ exports.resetPassword = async (req, res) => {
 
     res.status(200).json({ message: "Password reset successfully. You can now log in with your new password" });
   } catch (error) {
+    console.error("Error during password reset:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Reset Password: Update Password
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+  console.log(req.body,"request");
+  try {
+    // Verify the reset token
+    const decoded = jwt.verify(token, process.env.JWT_RESET_PASSWORD_SECRET);
+    const userId = decoded.id;
+    console.log(decoded,"request");
+    // Find user by decoded ID
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found", statusCode: 409 });
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user's password
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully. You can now log in with your new password.", statusCode: 200});
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: "Reset link has expired. Please request a new one.", statusCode: 409 });
+    }
     console.error("Error during password reset:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }

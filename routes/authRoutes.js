@@ -23,7 +23,7 @@ router.post('/login', login);
 router.post('/resend-otp', resendOTP);
 router.post('/forgot-password', forgotPassword);
 // router.post('/forgot-password-otp', verifyForgotPasswordOTP);
-router.put('/reset-password', resetPassword);
+router.post('/reset-password', resetPassword);
 
 router.post('/refresh-token', refreshToken);
 
