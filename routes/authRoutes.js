@@ -9,7 +9,8 @@ const {
   verifyForgotPasswordOTP,
   resetPassword,
   refreshToken,
-  logout
+  logout,
+  stockData
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -28,6 +29,8 @@ router.post('/reset-password', resetPassword);
 router.post('/refresh-token', refreshToken);
 
 router.post('/logout', logout);
+
+router.post('/stockData', stockData);
 
 // Example protected route
 router.get('/profile', protect, (req, res) => {

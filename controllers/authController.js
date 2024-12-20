@@ -5,6 +5,7 @@ const otpGenerator = require('otp-generator');
 const sendOTPEmail = require('../utils/sendOTPEmail');
 const sendResetLinkEmail = require('../utils/sendResetLinkEmail');
 const generateSequentialUserId = require("../utils/helpers/generateUserId");
+const StockData = require('../models/StockData');
 
 
 // Generate a reset token
@@ -368,4 +369,31 @@ exports.logout = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+
+// Get Stock Data
+exports.stockData = async (req, res) => {
+  const { symbol } = req.params;
+
+  if (!symbol) {
+    return res.status(400).json({ message: 'symbol is required' });
+  }
+
+  try {
+
+    const response = await axios.get(
+        `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`
+    );
+
+    const stockData = new StockData({ symbol, data: response.data });
+    await stockData.save();
+
+    res.status(200).send({ message: 'Data fetched and stored successfully' });
+
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 
