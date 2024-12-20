@@ -379,24 +379,28 @@ exports.logout = async (req, res) => {
 // Get Stock Data
 exports.stockData = async (req, res) => {
   const { symbol, timeSeries } = req.params;
-  console.log('test');
-  console.log(req.params);
 
-  if (!symbol) {
-    return res.status(400).json({ message: 'symbol is required' });
+  if (!symbol || !timeSeries) {
+    return res.status(400).json({ message: 'symbol and timeSeries are required' });
   }
-
   try {
     const response = await axios.get(
-        `https://www.alphavantage.co/query?function=${timeSeries}&symbol=${symbol}&apikey=${API_KEY}`
+      `https://www.alphavantage.co/query?function=${timeSeries}&symbol=${symbol}&apikey=${API_KEY}`
     );
+
     const stockData = new StockData({ symbol, data: response.data });
     await stockData.save();
-    res.status(200).send({ message: 'Data fetched and stored successfully' });
+
+    const allStockData = await StockData.find();
+    res.status(200).json({
+      message: 'Data fetched and stored successfully',
+      allData: allStockData,
+    });
   } catch (error) {
-    console.error('Error during logout:', error);
+    console.error('Error during data fetching:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 
