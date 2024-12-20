@@ -378,7 +378,7 @@ exports.logout = async (req, res) => {
 
 // Get Stock Data
 exports.stockData = async (req, res) => {
-  const { symbol } = req.params;
+  const { symbol, timeSeries } = req.params;
   console.log('test');
   console.log(req.params);
 
@@ -387,16 +387,12 @@ exports.stockData = async (req, res) => {
   }
 
   try {
-
     const response = await axios.get(
-        `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`
+        `https://www.alphavantage.co/query?function=${timeSeries}&symbol=${symbol}&apikey=${API_KEY}`
     );
-
     const stockData = new StockData({ symbol, data: response.data });
     await stockData.save();
-
     res.status(200).send({ message: 'Data fetched and stored successfully' });
-
   } catch (error) {
     console.error('Error during logout:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
