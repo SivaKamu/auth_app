@@ -30,7 +30,7 @@ router.post('/refresh-token', refreshToken);
 
 router.post('/logout', logout);
 
-router.post('/stockData', stockData);
+router.get('/stockData/:symbol', stockData);
 
 // Example protected route
 router.get('/profile', protect, (req, res) => {

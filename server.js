@@ -12,10 +12,6 @@ const app = express();
 // Connect to Database
 connectDB();
 
-// Alpha Vantage base URL and API key
-const ALPHA_VANTAGE_URL = 'https://www.alphavantage.co/query';
-const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
-
 // Route to fetch stock data
 app.get('/stock/:symbol', async (req, res) => {
   const symbol = req.params.symbol;

@@ -6,6 +6,11 @@ const sendOTPEmail = require('../utils/sendOTPEmail');
 const sendResetLinkEmail = require('../utils/sendResetLinkEmail');
 const generateSequentialUserId = require("../utils/helpers/generateUserId");
 const StockData = require('../models/StockData');
+const axios = require('axios');
+
+// Alpha Vantage base URL and API key
+const ALPHA_VANTAGE_URL = 'https://www.alphavantage.co/query';
+const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
 
 
 // Generate a reset token
@@ -374,6 +379,8 @@ exports.logout = async (req, res) => {
 // Get Stock Data
 exports.stockData = async (req, res) => {
   const { symbol } = req.params;
+  console.log('test');
+  console.log(req.params);
 
   if (!symbol) {
     return res.status(400).json({ message: 'symbol is required' });
