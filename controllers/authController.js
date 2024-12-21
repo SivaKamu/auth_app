@@ -8,6 +8,7 @@ const generateSequentialUserId = require("../utils/helpers/generateUserId");
 const StockData = require('../models/StockData');
 const FundamentalData = require('../models/FundamentalData');
 const CryptocurrencyData = require('../models/CryptocurrencyData');
+const CurrencyExchangeData = require('../models/CurrencyExchangeData');
 const axios = require('axios');
 
 // Alpha Vantage base URL and API key
@@ -392,7 +393,7 @@ exports.stockData = async (req, res) => {
 
     // Delete all previous records
     await StockData.deleteMany({});
-    
+
     const stockData = new StockData({ symbol, data: response.data });
     await stockData.save();
 
@@ -400,7 +401,6 @@ exports.stockData = async (req, res) => {
      const lastInsertedData = await StockData.findOne().sort({ _id: -1 }); 
 
    const convertedStockData = convertStockData(lastInsertedData);
-    console.log(convertedStockData);
     res.status(200).json({
       message: 'Data fetched and stored successfully',
       allData: convertedStockData,
@@ -465,9 +465,9 @@ exports.cryptocurrencyData = async (req, res) => {
 
 
 // Get Currency Exchange Data
-exports.currencyExchangeData = async (req, res) => {
+exports.currencyExchangeDataOld = async (req, res) => {
   const { fromCurrency,toCurrency  } = req.params;
-
+console.log(req.params);
   if (!fromCurrency || !toCurrency) {
     return res.status(400).json({ message: 'currency From and currency To are required' });
   }
@@ -475,20 +475,72 @@ exports.currencyExchangeData = async (req, res) => {
     const response = await axios.get(
       `https://www.alphavantage.co/query?from_currency=${fromCurrency}&to_currency=${toCurrency}&apikey=${API_KEY}`
     );
+console.log(response);
+    // Save the fetched data into the database
+    const currencyExchangeData = new CurrencyExchangeData({
+      fromCurrency,
+      toCurrency,
+      data: response.data,
+    });
+    await currencyExchangeData.save();
 
-    const cryptocurrencyData = new CryptocurrencyData({ symbol, data: response.data });
-    await cryptocurrencyData.save();
-
-    const allCryptocurrencyData = await CryptocurrencyData.find();
+    const allCurrencyExchangeData = await CurrencyExchangeData.find();
     res.status(200).json({
       message: 'Data fetched and stored successfully',
-      allData: allCryptocurrencyData,
+      allData: allCurrencyExchangeData,
     });
   } catch (error) {
     console.error('Error during data fetching:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+exports.currencyExchangeData = async (req, res) => {
+  const { fromCurrency, toCurrency } = req.params;
+
+  if (!fromCurrency || !toCurrency) {
+    return res.status(400).json({ message: 'Currency From and Currency To are required' });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${fromCurrency}&to_currency=${toCurrency}&apikey=${API_KEY}`
+    );
+
+    console.log(`https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${fromCurrency}&to_currency=${toCurrency}&apikey=${API_KEY}`, response.data); // Log the response for debugging
+
+    const exchangeRateData = response.data['Realtime Currency Exchange Rate'];
+    if (!exchangeRateData) {
+      return res.status(404).json({ 
+        message: 'Currency exchange rate data not found', 
+        apiResponse: response.data 
+      });
+    }
+
+    const currencyPair = `${fromCurrency}/${toCurrency}`;
+    const currencyExchangeData = new CurrencyExchangeData({
+      symbol: currencyPair,
+      fromCurrency,
+      toCurrency,
+      data: exchangeRateData,
+    });
+    await currencyExchangeData.save();
+
+    const allCurrencyExchangeData = await CurrencyExchangeData.find();
+
+    res.status(200).json({
+      message: 'Data fetched and stored successfully',
+      allData: allCurrencyExchangeData,
+    });
+  } catch (error) {
+    console.error('Error during data fetching:', error.message);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message,
+    });
+  }
+};
+
 
 
 function convertStockData(rawData) {
