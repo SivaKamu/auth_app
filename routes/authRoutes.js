@@ -10,7 +10,9 @@ const {
   resetPassword,
   refreshToken,
   logout,
-  stockData
+  stockData,
+  fundamentalData,
+  cryptocurrencyData
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -30,7 +32,11 @@ router.post('/refresh-token', refreshToken);
 
 router.post('/logout', logout);
 
-router.get('/stockData/:symbol', stockData);
+router.get('/stockData/:timeSeries/:symbol', stockData);
+
+router.get('/fundamentalData/:timeSeries/:symbol', fundamentalData);
+
+router.get('/cryptocurrencyData/:timeSeries/:symbol/:market', cryptocurrencyData);
 
 // Example protected route
 router.get('/profile', protect, (req, res) => {

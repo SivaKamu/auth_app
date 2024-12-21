@@ -6,6 +6,8 @@ const sendOTPEmail = require('../utils/sendOTPEmail');
 const sendResetLinkEmail = require('../utils/sendResetLinkEmail');
 const generateSequentialUserId = require("../utils/helpers/generateUserId");
 const StockData = require('../models/StockData');
+const FundamentalData = require('../models/FundamentalData');
+const CryptocurrencyData = require('../models/CryptocurrencyData');
 const axios = require('axios');
 
 // Alpha Vantage base URL and API key
@@ -395,6 +397,58 @@ exports.stockData = async (req, res) => {
     res.status(200).json({
       message: 'Data fetched and stored successfully',
       allData: allStockData,
+    });
+  } catch (error) {
+    console.error('Error during data fetching:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get Fundamental Data
+exports.fundamentalData = async (req, res) => {
+  const { timeSeries, symbol } = req.params;
+
+  if (!symbol || !timeSeries) {
+    return res.status(400).json({ message: 'symbol and timeSeries are required' });
+  }
+  try {
+    const response = await axios.get(
+      `https://www.alphavantage.co/query?function=${timeSeries}&symbol=${symbol}&apikey=${API_KEY}`
+    );
+
+    const fundamentalData = new FundamentalData({ symbol, data: response.data });
+    await fundamentalData.save();
+
+    const allFundamentalData = await FundamentalData.find();
+    res.status(200).json({
+      message: 'Data fetched and stored successfully',
+      allData: allFundamentalData,
+    });
+  } catch (error) {
+    console.error('Error during data fetching:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get Cryptocurrency Data
+exports.cryptocurrencyData = async (req, res) => {
+  const { symbol,market,timeSeries,  } = req.params;
+
+  if (!symbol || !timeSeries || !market) {
+    return res.status(400).json({ message: 'symbol and timeSeries and market are required' });
+  }
+  try {
+    const response = await axios.get(
+      `https://www.alphavantage.co/query?symbol=${symbol}&market=${market}&function=${timeSeries}&apikey=${API_KEY}`
+    );
+
+    const cryptocurrencyData = new CryptocurrencyData({ symbol, data: response.data });
+    await cryptocurrencyData.save();
+
+    const allCryptocurrencyData = await CryptocurrencyData.find();
+    res.status(200).json({
+      message: 'Data fetched and stored successfully',
+      allData: allCryptocurrencyData,
     });
   } catch (error) {
     console.error('Error during data fetching:', error);
