@@ -7,7 +7,12 @@ const {
   resendOTP,
   forgotPassword,
   verifyForgotPasswordOTP,
-  resetPassword
+  resetPassword,
+  refreshToken,
+  logout,
+  stockData,
+  fundamentalData,
+  cryptocurrencyData
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -21,7 +26,17 @@ router.post('/login', login);
 router.post('/resend-otp', resendOTP);
 router.post('/forgot-password', forgotPassword);
 // router.post('/forgot-password-otp', verifyForgotPasswordOTP);
-router.put('/reset-password', resetPassword);
+router.post('/reset-password', resetPassword);
+
+router.post('/refresh-token', refreshToken);
+
+router.post('/logout', logout);
+
+router.get('/stockData/:timeSeries/:symbol', stockData);
+
+router.get('/fundamentalData/:timeSeries/:symbol', fundamentalData);
+
+router.get('/cryptocurrencyData/:timeSeries/:symbol/:market', cryptocurrencyData);
 
 // Example protected route
 router.get('/profile', protect, (req, res) => {

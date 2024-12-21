@@ -17,8 +17,6 @@ const generateSequentialUserId = async () => {
 
 module.exports = generateSequentialUserId;
 
-const User = require("../../models/User");
-
 // Function to generate a unique 5-digit userId
 const generateUniqueUserId = async () => {
   let unique = false;
