@@ -13,7 +13,11 @@ const {
   stockData,
   fundamentalData,
   cryptocurrencyData,
-  currencyExchangeData
+  currencyExchangeData,
+  populateMarkets,
+  getMarkets,
+  populateSymbols,
+  getSymbols
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -40,6 +44,14 @@ router.get('/fundamentalData/:timeSeries/:symbol', fundamentalData);
 router.get('/cryptocurrencyData/:timeSeries/:symbol/:market', cryptocurrencyData);
 
 router.get('/currencyExchangeData/:fromCurrency/:toCurrency', currencyExchangeData);
+
+router.get('/populateMarkets', populateMarkets);
+
+router.get('/getMarkets', getMarkets);
+
+router.get('/populateSymbols', populateSymbols);
+
+router.get('/getSymbols', getSymbols);
 
 // Example protected route
 router.get('/profile', protect, (req, res) => {

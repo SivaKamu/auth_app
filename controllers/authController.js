@@ -9,6 +9,8 @@ const StockData = require('../models/StockData');
 const FundamentalData = require('../models/FundamentalData');
 const CryptocurrencyData = require('../models/CryptocurrencyData');
 const CurrencyExchangeData = require('../models/CurrencyExchangeData');
+const Market = require('../models/MarketData');
+const Symbol = require('../models/SymbolData');
 const axios = require('axios');
 
 // Alpha Vantage base URL and API key
@@ -21,6 +23,42 @@ const generateResetToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_RESET_PASSWORD_SECRET, { expiresIn: '15m' });
 };
 
+// Predefined Market List
+const markets = [
+  { code: 'USD', name: 'United States Dollar' },
+  { code: 'EUR', name: 'Euro' },
+  { code: 'GBP', name: 'British Pound Sterling' },
+  { code: 'JPY', name: 'Japanese Yen' },
+  { code: 'AUD', name: 'Australian Dollar' },
+  { code: 'CAD', name: 'Canadian Dollar' },
+  { code: 'CHF', name: 'Swiss Franc' },
+  { code: 'CNY', name: 'Chinese Yuan Renminbi' },
+  { code: 'INR', name: 'Indian Rupee' },
+  { code: 'SGD', name: 'Singapore Dollar' },
+  { code: 'HKD', name: 'Hong Kong Dollar' },
+  { code: 'KRW', name: 'South Korean Won' },
+  { code: 'BRL', name: 'Brazilian Real' },
+  { code: 'ZAR', name: 'South African Rand' },
+];
+
+// Predefined Symbol List
+const symbols = [
+  { code: 'BTC', name: 'Bitcoin' },
+  { code: 'ETH', name: 'Ethereum' },
+  { code: 'BNB', name: 'Binance Coin' },
+  { code: 'XRP', name: 'Ripple' },
+  { code: 'LTC', name: 'Litecoin' },
+  { code: 'ADA', name: 'Cardano' },
+  { code: 'SOL', name: 'Solana' },
+  { code: 'DOT', name: 'Polkadot' },
+  { code: 'DOGE', name: 'Dogecoin' },
+  { code: 'SHIB', name: 'Shiba Inu' },
+  { code: 'MATIC', name: 'Polygon' },
+  { code: 'TRX', name: 'TRON' },
+  { code: 'AVAX', name: 'Avalanche' },
+  { code: 'XMR', name: 'Monero' },
+  { code: 'BCH', name: 'Bitcoin Cash' },
+];
 
 // Register User with OTP
 exports.register = async (req, res) => {
@@ -463,7 +501,6 @@ exports.cryptocurrencyData = async (req, res) => {
   }
 };
 
-
 // Get Currency Exchange Data
 exports.currencyExchangeDataOld = async (req, res) => {
   const { fromCurrency,toCurrency  } = req.params;
@@ -495,6 +532,7 @@ console.log(response);
   }
 };
 
+// Get Currency Exchange Data
 exports.currencyExchangeData = async (req, res) => {
   const { fromCurrency, toCurrency } = req.params;
 
@@ -541,8 +579,6 @@ exports.currencyExchangeData = async (req, res) => {
   }
 };
 
-
-
 function convertStockData(rawData) {
   // Find the key containing "Time Series" dynamically
   const timeSeriesKey = Object.keys(rawData.data).find((key) =>
@@ -566,5 +602,61 @@ function convertStockData(rawData) {
   return { dates, ohlc };
 }
 
+// Populate Markets
+exports.populateMarkets = async (req, res) => {
+  try {
+    // Clear existing markets
+    await Market.deleteMany({});
+
+    // Insert new markets
+    await Market.insertMany(markets);
+
+    res.status(200).json({ message: 'Market table populated successfully' });
+  } catch (error) {
+    console.error('Error populating market table:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+// Fetch All Markets
+exports.getMarkets = async (req, res) => {
+  try {
+    const allMarkets = await Market.find();
+    res.status(200).json({ message: 'Markets fetched successfully', data: allMarkets });
+  } catch (error) {
+    console.error('Error fetching markets:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+// Populate Symbols
+exports.populateSymbols= async (req, res) => {
+  try {
+    // Clear existing symbols
+    await Symbol.deleteMany({});
+
+    // Insert new symbol
+    await Symbol.insertMany(symbols);
+
+    res.status(200).json({ message: 'Symbol table populated successfully' });
+  } catch (error) {
+    console.error('Error populating symbol table:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+// Fetch All Symbols
+exports.getSymbols = async (req, res) => {
+  try {
+    const allSymbols = await Symbol.find();
+    res.status(200).json({ message: 'Symbola fetched successfully', data: allSymbols });
+  } catch (error) {
+    console.error('Error fetching symbols:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
 
 
