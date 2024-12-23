@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const axios = require('axios');
 
 
@@ -41,6 +42,7 @@ app.use(bodyParser.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes)
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {

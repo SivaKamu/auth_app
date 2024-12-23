@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   userId: {type: String, unique: true},
   otp: { type: String },
   otpExpiresAt: { type: Date },
-  isVerified: { type: Boolean, default: false },
+  isVerified: { type: String, default: false },
   refreshToken: { type: String}
 });
 
