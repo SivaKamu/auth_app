@@ -461,6 +461,9 @@ exports.fundamentalData = async (req, res) => {
       `https://www.alphavantage.co/query?function=${timeSeries}&symbol=${symbol}&apikey=${API_KEY}`
     );
 
+    // Delete all previous records
+    await FundamentalData.deleteMany({});
+
     const fundamentalData = new FundamentalData({ symbol, data: response.data });
     await fundamentalData.save();
 
@@ -592,7 +595,10 @@ function convertStockData(rawData) {
   const timeSeries = rawData.data[timeSeriesKey];
   
   const dates = Object.keys(timeSeries); // Extract all dates
+  
+  // Map over the dates and format the ohlc array to include the date field
   const ohlc = dates.map((date) => ({
+    date: date, // Add the date to each data point
     o: parseFloat(timeSeries[date]["1. open"]),
     h: parseFloat(timeSeries[date]["2. high"]),
     l: parseFloat(timeSeries[date]["3. low"]),
